@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------------
 // The one place that touches the network: a JSON request through the fetch of
-// Node, with a timeout. The tests replace it with a simulated Gizwits cloud
-// (test/helpers/fakeGizwits.js).
+// Node, with a timeout. The tests replace it with a simulated Sensibo cloud
+// (test/helpers/fakeSensibo.js).
 // -----------------------------------------------------------------------------
 
 export const REQUEST_TIMEOUT_MS = 20_000;

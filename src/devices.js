@@ -9,7 +9,7 @@
 //   - power: air-conditioning/binary (switch/binary on a Pure), writable;
 //   - mode, setpoint, fan speed, vertical and horizontal swing:
 //     air-conditioning/*, writable, the couples the core gives its own air
-//     conditioners (MELCloud, Tuya, Matter). Bounds: the remote's capabilities;
+//     conditioners (MELCloud, Matter). Bounds: the remote's capabilities;
 //   - Climate React: switch/binary, writable, when it was set up in the app;
 //   - measured temperature and humidity, CO2, TVOC, PM2.5: read only;
 //   - filter life: hepa-filter-monitoring/filter-life-remaining, read only,

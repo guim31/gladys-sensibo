@@ -7,8 +7,8 @@
 export const LANGUAGES = ['en', 'fr', 'de', 'es'];
 
 // Refresh intervals offered in the configuration, in seconds. One minute at
-// least: the Sensibo cloud limits the requests of an API key, and the pods
-// themselves report every 90 seconds or so.
+// least: the Sensibo cloud limits the requests of an API key (one request
+// reads every pod).
 export const POLL_INTERVALS = ['60', '120', '300', '600'];
 
 export const DEFAULT_CONFIG = {
