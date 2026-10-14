@@ -1,0 +1,249 @@
+{
+  "id": "Sky0Aa11",
+  "room": {
+    "uid": "11aA0ykS",
+    "name": "Living room",
+    "icon": "Lounge"
+  },
+  "productModel": "skyv2",
+  "connectionStatus": {
+    "isAlive": true,
+    "lastSeen": {
+      "time": "2024-12-08T17:16:13.197465Z",
+      "secondsAgo": 47
+    }
+  },
+  "acState": {
+    "timestamp": {
+      "time": "2024-12-08T17:17:01.431520Z",
+      "secondsAgo": 0
+    },
+    "on": false,
+    "mode": "heat",
+    "targetTemperature": 24,
+    "temperatureUnit": "C",
+    "fanLevel": "high",
+    "swing": "stopped",
+    "horizontalSwing": "stopped",
+    "light": "on"
+  },
+  "measurements": {
+    "time": {
+      "time": "2024-12-08T17:16:13.197465Z",
+      "secondsAgo": 48
+    },
+    "temperature": 20.2,
+    "humidity": 32.2,
+    "feelsLike": 20.2,
+    "rssi": -73
+  },
+  "remoteCapabilities": {
+    "modes": {
+      "cool": {
+        "temperatures": {
+          "F": {
+            "isNative": false,
+            "values": [64, 66, 68, 70, 72, 73, 75, 77, 79, 81, 82, 84, 86]
+          },
+          "C": {
+            "isNative": true,
+            "values": [18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+          }
+        },
+        "fanLevels": ["quiet", "low", "medium", "medium_high", "high", "auto", "strong"],
+        "swing": [
+          "stopped",
+          "fixedTop",
+          "fixedMiddleTop",
+          "fixedMiddle",
+          "fixedMiddleBottom",
+          "fixedBottom",
+          "rangeFull"
+        ],
+        "horizontalSwing": [
+          "stopped",
+          "fixedLeft",
+          "fixedCenterLeft",
+          "fixedCenter",
+          "fixedCenterRight",
+          "fixedRight",
+          "fixedLeftRight",
+          "rangeCenter",
+          "rangeFull"
+        ],
+        "light": ["on", "off"]
+      },
+      "heat": {
+        "temperatures": {
+          "F": {
+            "isNative": false,
+            "values": [63, 64, 66, 68, 70, 72, 73, 75, 77, 79, 81, 82, 84, 86]
+          },
+          "C": {
+            "isNative": true,
+            "values": [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+          }
+        },
+        "fanLevels": ["quiet", "low", "medium", "medium_high", "high", "auto", "strong"],
+        "swing": [
+          "stopped",
+          "fixedTop",
+          "fixedMiddleTop",
+          "fixedMiddle",
+          "fixedMiddleBottom",
+          "fixedBottom",
+          "rangeFull"
+        ],
+        "horizontalSwing": [
+          "stopped",
+          "fixedLeft",
+          "fixedCenterLeft",
+          "fixedCenter",
+          "fixedCenterRight",
+          "fixedRight",
+          "fixedLeftRight",
+          "rangeCenter",
+          "rangeFull"
+        ],
+        "light": ["on", "off"]
+      },
+      "dry": {
+        "temperatures": {
+          "F": {
+            "isNative": false,
+            "values": [64, 66, 68, 70, 72, 73, 75, 77, 79, 81, 82, 84, 86]
+          },
+          "C": {
+            "isNative": true,
+            "values": [18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+          }
+        },
+        "swing": [
+          "stopped",
+          "fixedTop",
+          "fixedMiddleTop",
+          "fixedMiddle",
+          "fixedMiddleBottom",
+          "fixedBottom",
+          "rangeFull"
+        ],
+        "horizontalSwing": [
+          "stopped",
+          "fixedLeft",
+          "fixedCenterLeft",
+          "fixedCenter",
+          "fixedCenterRight",
+          "fixedRight",
+          "fixedLeftRight",
+          "rangeCenter",
+          "rangeFull"
+        ],
+        "light": ["on", "off"]
+      },
+      "auto": {
+        "temperatures": {
+          "F": {
+            "isNative": false,
+            "values": [64, 66, 68, 70, 72, 73, 75, 77, 79, 81, 82, 84, 86]
+          },
+          "C": {
+            "isNative": true,
+            "values": [18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+          }
+        },
+        "fanLevels": ["quiet", "low", "medium", "medium_high", "high", "auto", "strong"],
+        "swing": [
+          "stopped",
+          "fixedTop",
+          "fixedMiddleTop",
+          "fixedMiddle",
+          "fixedMiddleBottom",
+          "fixedBottom",
+          "rangeFull"
+        ],
+        "horizontalSwing": [
+          "stopped",
+          "fixedLeft",
+          "fixedCenterLeft",
+          "fixedCenter",
+          "fixedCenterRight",
+          "fixedRight",
+          "fixedLeftRight",
+          "rangeCenter",
+          "rangeFull"
+        ],
+        "light": ["on", "off"]
+      },
+      "fan": {
+        "temperatures": {},
+        "fanLevels": ["quiet", "low", "medium", "medium_high", "high", "auto", "strong"],
+        "swing": [
+          "stopped",
+          "fixedTop",
+          "fixedMiddleTop",
+          "fixedMiddle",
+          "fixedMiddleBottom",
+          "fixedBottom",
+          "rangeFull"
+        ],
+        "horizontalSwing": [
+          "stopped",
+          "fixedLeft",
+          "fixedCenterLeft",
+          "fixedCenter",
+          "fixedCenterRight",
+          "fixedRight",
+          "fixedLeftRight",
+          "rangeCenter",
+          "rangeFull"
+        ],
+        "light": ["on", "off"]
+      }
+    }
+  },
+  "temperatureUnit": "C",
+  "filtersCleaning": {
+    "acOnSecondsSinceLastFiltersClean": 8781766,
+    "filtersCleanSecondsThreshold": 1080000,
+    "lastFiltersCleanTime": {
+      "time": "2022-03-12T15:24:26Z",
+      "secondsAgo": 86579555
+    },
+    "shouldCleanFilters": true
+  },
+  "smartMode": {
+    "enabled": false,
+    "type": "feelsLike",
+    "deviceUid": "Sky0Aa11",
+    "lowTemperatureThreshold": 15,
+    "highTemperatureThreshold": 29,
+    "lowTemperatureState": {
+      "on": true,
+      "targetTemperature": 24,
+      "temperatureUnit": "C",
+      "mode": "heat",
+      "fanLevel": "low",
+      "swing": "stopped",
+      "horizontalSwing": "stopped",
+      "light": "on"
+    },
+    "highTemperatureState": {
+      "on": true,
+      "targetTemperature": 24,
+      "temperatureUnit": "C",
+      "mode": "cool",
+      "fanLevel": "high",
+      "swing": "stopped",
+      "horizontalSwing": "stopped",
+      "light": "on"
+    },
+    "lowTemperatureWebhook": null,
+    "highTemperatureWebhook": null,
+    "sync_with_ac_power": false
+  },
+  "firmwareVersion": "SKY30046",
+  "firmwareType": "esp8266ex",
+  "macAddress": "02:00:00:00:00:01",
+  "serial": "SKY0000001",
+  "roomIsOccupied": null
+}

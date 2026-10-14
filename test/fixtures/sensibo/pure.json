@@ -1,0 +1,62 @@
+{
+  "id": "Pure0Bb2",
+  "room": {
+    "uid": "2bB0eruP",
+    "name": "Bedroom",
+    "icon": "Livingroom"
+  },
+  "productModel": "pure",
+  "connectionStatus": {
+    "isAlive": true,
+    "lastSeen": {
+      "time": "2024-12-08T17:16:48.898713Z",
+      "secondsAgo": 12
+    }
+  },
+  "acState": {
+    "timestamp": {
+      "time": "2024-12-08T17:17:01.487730Z",
+      "secondsAgo": 0
+    },
+    "on": false,
+    "mode": "fan",
+    "fanLevel": "low",
+    "light": "on"
+  },
+  "measurements": {
+    "time": {
+      "time": "2024-12-08T17:16:48.898713Z",
+      "secondsAgo": 12
+    },
+    "rssi": -61,
+    "pm25": 1,
+    "motion": false,
+    "roomIsOccupied": null,
+    "iaq": 67
+  },
+  "remoteCapabilities": {
+    "modes": {
+      "fan": {
+        "temperatures": {},
+        "fanLevels": ["low", "high"],
+        "light": ["on", "dim", "off"]
+      }
+    }
+  },
+  "temperatureUnit": "C",
+  "filtersCleaning": {
+    "acOnSecondsSinceLastFiltersClean": 10224186,
+    "filtersCleanSecondsThreshold": 14256000,
+    "lastFiltersCleanTime": {
+      "time": "2022-04-23T15:58:45Z",
+      "secondsAgo": 82948696
+    },
+    "shouldCleanFilters": false
+  },
+  "smartMode": null,
+  "firmwareVersion": "PUR00114",
+  "firmwareType": "pure-esp32",
+  "macAddress": "02:00:00:00:00:02",
+  "serial": "PUR0000002",
+  "roomIsOccupied": null
+}

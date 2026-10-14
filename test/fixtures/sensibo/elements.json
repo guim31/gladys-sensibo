@@ -1,0 +1,64 @@
+{
+  "id": "Elem0Cc3",
+  "room": {
+    "uid": "3cC0melE",
+    "name": "Office",
+    "icon": "Livingroom"
+  },
+  "productModel": "elements",
+  "connectionStatus": {
+    "isAlive": false,
+    "lastSeen": {
+      "time": "2024-12-08T06:26:53Z",
+      "secondsAgo": 39008
+    },
+    "deadReasons": ["staleConnection", "disconnected:unexpectedDisconnection"]
+  },
+  "acState": {
+    "timestamp": {
+      "time": "2024-12-08T17:17:01.516782Z",
+      "secondsAgo": 0
+    },
+    "on": false,
+    "mode": "fan",
+    "fanLevel": "high",
+    "light": "on"
+  },
+  "measurements": {
+    "time": {
+      "time": "2024-12-08T06:21:26.880943Z",
+      "secondsAgo": 39334
+    },
+    "temperature": 20.3,
+    "humidity": 62,
+    "feelsLike": 20.3,
+    "rssi": -69,
+    "tvoc": 61,
+    "co2": 432,
+    "pm25": 0.29721,
+    "etoh": 0.065127,
+    "iaq": 12
+  },
+  "remoteCapabilities": {
+    "modes": {
+      "fan": {
+        "temperatures": {},
+        "fanLevels": ["low", "high"],
+        "light": ["on", "dim", "off"]
+      }
+    }
+  },
+  "temperatureUnit": "C",
+  "filtersCleaning": {
+    "acOnSecondsSinceLastFiltersClean": 0,
+    "filtersCleanSecondsThreshold": 1080000,
+    "lastFiltersCleanTime": null,
+    "shouldCleanFilters": false
+  },
+  "smartMode": null,
+  "firmwareVersion": "ELM00119",
+  "firmwareType": "elements-esp32",
+  "macAddress": "02:00:00:00:00:03",
+  "serial": "ELM0000003",
+  "roomIsOccupied": null
+}

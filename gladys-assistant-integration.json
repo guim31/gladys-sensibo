@@ -1,177 +1,537 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Sensibo",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Sensibo air conditioner controllers: power, mode, setpoint, fan, sensors, widget and scenes.",
+    "fr": "Contrôleurs de clim Sensibo : marche, mode, consigne, ventilation, capteurs, widget et scènes.",
+    "de": "Sensibo-Klimasteuerungen: Ein/Aus, Modus, Solltemperatur, Lüfter, Sensoren, Widget und Szenen.",
+    "es": "Controladores de aire Sensibo: encendido, modo, temperatura, ventilador, sensores, widget y escenas."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "docker_image": "ghcr.io/guim31/gladys-sensibo:1.0.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-sensibo/main/cover.png",
+  "categories": ["climate"],
+  "transports": ["cloud"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Your Sensibo account",
+        "fr": "Votre compte Sensibo",
+        "de": "Dein Sensibo-Konto",
+        "es": "Su cuenta Sensibo"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Create an API key in your Sensibo account, then paste it below: every Sensibo of the account becomes a device in the Discovery tab. The integration reads the Sensibo cloud: an Internet connection is required.",
+        "fr": "Créez une clé d'API dans votre compte Sensibo, puis collez-la ci-dessous : chaque Sensibo du compte devient un appareil dans l'onglet Découverte. L'intégration lit le cloud Sensibo : une connexion Internet est nécessaire.",
+        "de": "Erstelle einen API-Schlüssel in deinem Sensibo-Konto und füge ihn unten ein: Jedes Sensibo des Kontos wird zu einem Gerät im Tab Erkennung. Die Integration liest die Sensibo-Cloud: Eine Internetverbindung ist nötig.",
+        "es": "Cree una clave de API en su cuenta Sensibo y péguela abajo: cada Sensibo de la cuenta se convierte en un dispositivo en la pestaña Descubrimiento. La integración lee la nube de Sensibo: se necesita conexión a Internet."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://home.sensibo.com/me/api",
+          "label": {
+            "en": "Sensibo API keys",
+            "fr": "Clés d'API Sensibo",
+            "de": "Sensibo-API-Schlüssel",
+            "es": "Claves de API de Sensibo"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
+      "key": "api_key",
+      "type": "secret",
+      "label": {
+        "en": "API key",
+        "fr": "Clé d'API",
+        "de": "API-Schlüssel",
+        "es": "Clave de API"
       },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
+      "description": {
+        "en": "It stays in Gladys and is only sent to the Sensibo cloud. Delete it in your Sensibo account to revoke it.",
+        "fr": "Elle reste dans Gladys et n'est envoyée qu'au cloud Sensibo. Supprimez-la dans votre compte Sensibo pour la révoquer.",
+        "de": "Er bleibt in Gladys und wird nur an die Sensibo-Cloud gesendet. Lösche ihn in deinem Sensibo-Konto, um ihn zu widerrufen.",
+        "es": "Se queda en Gladys y solo se envía a la nube de Sensibo. Elimínela en su cuenta Sensibo para revocarla."
+      },
+      "required": true
     },
     {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
-    },
-    {
-      "key": "unit",
+      "key": "poll_interval",
       "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
-      "required": false,
-      "default": "celsius",
+      "label": {
+        "en": "Refresh interval",
+        "fr": "Intervalle de rafraîchissement",
+        "de": "Aktualisierungsintervall",
+        "es": "Intervalo de actualización"
+      },
+      "description": {
+        "en": "How often the Sensibo cloud is read (one request for every device). A change made from Gladys shows at once.",
+        "fr": "Fréquence de lecture du cloud Sensibo (une requête pour tous les appareils). Un changement fait depuis Gladys s'affiche tout de suite.",
+        "de": "Wie oft die Sensibo-Cloud gelesen wird (eine Anfrage für alle Geräte). Eine Änderung über Gladys erscheint sofort.",
+        "es": "Frecuencia de lectura de la nube de Sensibo (una solicitud para todos los dispositivos). Un cambio hecho desde Gladys se muestra al instante."
+      },
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
-      ]
+        {
+          "value": "60",
+          "label": {
+            "en": "1 minute",
+            "fr": "1 minute",
+            "de": "1 Minute",
+            "es": "1 minuto"
+          }
+        },
+        {
+          "value": "120",
+          "label": {
+            "en": "2 minutes",
+            "fr": "2 minutes",
+            "de": "2 Minuten",
+            "es": "2 minutos"
+          }
+        },
+        {
+          "value": "300",
+          "label": {
+            "en": "5 minutes",
+            "fr": "5 minutes",
+            "de": "5 Minuten",
+            "es": "5 minutos"
+          }
+        },
+        {
+          "value": "600",
+          "label": {
+            "en": "10 minutes",
+            "fr": "10 minutes",
+            "de": "10 Minuten",
+            "es": "10 minutos"
+          }
+        }
+      ],
+      "default": "120"
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
-      "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+      "key": "language",
+      "type": "select",
+      "label": {
+        "en": "Language of the names",
+        "fr": "Langue des noms",
+        "de": "Sprache der Namen",
+        "es": "Idioma de los nombres"
       },
-      "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "description": {
+        "en": "Language of the feature names and of the messages of the integration.",
+        "fr": "Langue des noms de fonctionnalités et des messages de l'intégration.",
+        "de": "Sprache der Funktionsnamen und der Meldungen der Integration.",
+        "es": "Idioma de los nombres de las funciones y de los mensajes de la integración."
+      },
+      "options": [
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais",
+            "de": "Englisch",
+            "es": "Inglés"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français",
+            "de": "Französisch",
+            "es": "Francés"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "German",
+            "fr": "Allemand",
+            "de": "Deutsch",
+            "es": "Alemán"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Spanish",
+            "fr": "Espagnol",
+            "de": "Spanisch",
+            "es": "Español"
+          }
+        }
+      ],
+      "default": "fr"
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ]
+      "key": "test_connection",
+      "label": {
+        "en": "Test the connection",
+        "fr": "Tester la connexion",
+        "de": "Verbindung testen",
+        "es": "Probar la conexión"
+      },
+      "description": {
+        "en": "Reads the Sensibo cloud now and lists the devices of the account.",
+        "fr": "Lit le cloud Sensibo maintenant et liste les appareils du compte.",
+        "de": "Liest jetzt die Sensibo-Cloud und listet die Geräte des Kontos auf.",
+        "es": "Lee la nube de Sensibo ahora y enumera los dispositivos de la cuenta."
+      },
+      "timeout_seconds": 60
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "pod_offline",
+      "label": {
+        "en": "Sensibo offline",
+        "fr": "Sensibo hors ligne",
+        "de": "Sensibo offline",
+        "es": "Sensibo desconectado"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "A Sensibo lost its connection to the Sensibo cloud (Wi-Fi, power cut): it can no longer be controlled.",
+        "fr": "Un Sensibo a perdu sa connexion au cloud Sensibo (Wi-Fi, coupure de courant) : il ne peut plus être piloté.",
+        "de": "Ein Sensibo hat die Verbindung zur Sensibo-Cloud verloren (WLAN, Stromausfall): Es lässt sich nicht mehr steuern.",
+        "es": "Un Sensibo ha perdido la conexión con la nube de Sensibo (wifi, corte de luz): ya no se puede controlar."
       },
       "fields": [
         {
           "key": "device",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
-        },
-        {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
-          "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
-          ]
+          "label": {
+            "en": "Device (empty: any)",
+            "fr": "Appareil (vide : n'importe lequel)",
+            "de": "Gerät (leer: beliebig)",
+            "es": "Dispositivo (vacío: cualquiera)"
+          }
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "name",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Device name",
+            "fr": "Nom de l'appareil",
+            "de": "Gerätename",
+            "es": "Nombre del dispositivo"
+          }
+        },
+        {
+          "key": "device",
+          "type": "string",
+          "label": {
+            "en": "Device",
+            "fr": "Appareil",
+            "de": "Gerät",
+            "es": "Dispositivo"
+          }
+        }
+      ]
+    },
+    {
+      "key": "pod_online",
+      "label": {
+        "en": "Sensibo back online",
+        "fr": "Sensibo de nouveau en ligne",
+        "de": "Sensibo wieder online",
+        "es": "Sensibo conectado de nuevo"
+      },
+      "description": {
+        "en": "A Sensibo that was offline is connected again.",
+        "fr": "Un Sensibo qui était hors ligne est de nouveau connecté.",
+        "de": "Ein Sensibo, das offline war, ist wieder verbunden.",
+        "es": "Un Sensibo que estaba desconectado vuelve a estar conectado."
+      },
+      "fields": [
+        {
+          "key": "device",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Device (empty: any)",
+            "fr": "Appareil (vide : n'importe lequel)",
+            "de": "Gerät (leer: beliebig)",
+            "es": "Dispositivo (vacío: cualquiera)"
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "name",
+          "type": "string",
+          "label": {
+            "en": "Device name",
+            "fr": "Nom de l'appareil",
+            "de": "Gerätename",
+            "es": "Nombre del dispositivo"
+          }
+        },
+        {
+          "key": "device",
+          "type": "string",
+          "label": {
+            "en": "Device",
+            "fr": "Appareil",
+            "de": "Gerät",
+            "es": "Dispositivo"
+          }
+        }
+      ]
+    },
+    {
+      "key": "filter_clean_needed",
+      "label": {
+        "en": "Filter to clean",
+        "fr": "Filtre à nettoyer",
+        "de": "Filter reinigen",
+        "es": "Filtro que limpiar"
+      },
+      "description": {
+        "en": "Sensibo says the filter of the air conditioner (or of the Pure) needs cleaning, after the running time set in its app.",
+        "fr": "Sensibo signale que le filtre de la clim (ou du Pure) est à nettoyer, d'après la durée de marche réglée dans son application.",
+        "de": "Sensibo meldet, dass der Filter der Klimaanlage (oder des Pure) gereinigt werden muss, nach der in der App eingestellten Laufzeit.",
+        "es": "Sensibo indica que hay que limpiar el filtro del aire acondicionado (o del Pure), según el tiempo de funcionamiento ajustado en su aplicación."
+      },
+      "fields": [
+        {
+          "key": "device",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Device (empty: any)",
+            "fr": "Appareil (vide : n'importe lequel)",
+            "de": "Gerät (leer: beliebig)",
+            "es": "Dispositivo (vacío: cualquiera)"
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "name",
+          "type": "string",
+          "label": {
+            "en": "Device name",
+            "fr": "Nom de l'appareil",
+            "de": "Gerätename",
+            "es": "Nombre del dispositivo"
+          }
+        },
+        {
+          "key": "device",
+          "type": "string",
+          "label": {
+            "en": "Device",
+            "fr": "Appareil",
+            "de": "Gerät",
+            "es": "Dispositivo"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "turn_on",
+      "label": {
+        "en": "Turn on Sensibo air conditioners",
+        "fr": "Allumer des clims Sensibo",
+        "de": "Sensibo-Klimaanlagen einschalten",
+        "es": "Encender aires Sensibo"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "In a mode, at a temperature, in one command. The temperature is brought within what the remote offers in this mode (nearest value). Empty temperature: the current one.",
+        "fr": "Dans un mode, à une température, en une seule commande. La température est ramenée à ce que la télécommande propose dans ce mode (valeur la plus proche). Température vide : celle en cours.",
+        "de": "In einem Modus, mit einer Temperatur, in einem Befehl. Die Temperatur wird auf das gebracht, was die Fernbedienung in diesem Modus bietet (nächster Wert). Leere Temperatur: die aktuelle.",
+        "es": "En un modo, a una temperatura, en una sola orden. La temperatura se ajusta a lo que el mando ofrece en ese modo (valor más cercano). Temperatura vacía: la actual."
+      },
+      "timeout_seconds": 60,
       "fields": [
         {
           "key": "device",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "label": {
+            "en": "Air conditioner (empty: all)",
+            "fr": "Clim (vide : toutes)",
+            "de": "Klimaanlage (leer: alle)",
+            "es": "Aire acondicionado (vacío: todos)"
+          }
+        },
+        {
+          "key": "mode",
+          "type": "select",
+          "required": true,
+          "label": {
+            "en": "Mode",
+            "fr": "Mode",
+            "de": "Modus",
+            "es": "Modo"
+          },
+          "options": [
+            {
+              "value": "cool",
+              "label": {
+                "en": "Cooling",
+                "fr": "Refroidissement",
+                "de": "Kühlen",
+                "es": "Frío"
+              }
+            },
+            {
+              "value": "heat",
+              "label": {
+                "en": "Heating",
+                "fr": "Chauffage",
+                "de": "Heizen",
+                "es": "Calor"
+              }
+            },
+            {
+              "value": "auto",
+              "label": {
+                "en": "Auto",
+                "fr": "Auto",
+                "de": "Automatisch",
+                "es": "Auto"
+              }
+            },
+            {
+              "value": "dry",
+              "label": {
+                "en": "Drying",
+                "fr": "Déshumidification",
+                "de": "Entfeuchten",
+                "es": "Seco"
+              }
+            },
+            {
+              "value": "fan",
+              "label": {
+                "en": "Fan",
+                "fr": "Ventilation",
+                "de": "Lüften",
+                "es": "Ventilador"
+              }
+            }
+          ]
+        },
+        {
+          "key": "temperature",
+          "type": "number",
+          "label": {
+            "en": "Temperature (empty: current)",
+            "fr": "Température (vide : actuelle)",
+            "de": "Temperatur (leer: aktuelle)",
+            "es": "Temperatura (vacío: actual)"
+          }
         }
       ],
       "outputs": [
         {
-          "key": "signalled",
-          "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "key": "count",
+          "type": "number",
+          "label": {
+            "en": "Air conditioners turned on",
+            "fr": "Clims allumées",
+            "de": "Eingeschaltete Klimaanlagen",
+            "es": "Aires encendidos"
+          }
+        },
+        {
+          "key": "temperature",
+          "type": "number",
+          "label": {
+            "en": "Temperature applied",
+            "fr": "Température appliquée",
+            "de": "Angewendete Temperatur",
+            "es": "Temperatura aplicada"
+          }
+        }
+      ]
+    },
+    {
+      "key": "turn_off",
+      "label": {
+        "en": "Turn off Sensibo air conditioners",
+        "fr": "Éteindre des clims Sensibo",
+        "de": "Sensibo-Klimaanlagen ausschalten",
+        "es": "Apagar aires Sensibo"
+      },
+      "description": {
+        "en": "One air conditioner, or all of them when the field is empty (the offline ones are skipped).",
+        "fr": "Une clim, ou toutes quand le champ est vide (celles hors ligne sont ignorées).",
+        "de": "Eine Klimaanlage oder alle, wenn das Feld leer ist (die Offline-Geräte werden übersprungen).",
+        "es": "Un aire acondicionado, o todos si el campo está vacío (los desconectados se omiten)."
+      },
+      "timeout_seconds": 60,
+      "fields": [
+        {
+          "key": "device",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Air conditioner (empty: all)",
+            "fr": "Clim (vide : toutes)",
+            "de": "Klimaanlage (leer: alle)",
+            "es": "Aire acondicionado (vacío: todos)"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "key": "count",
+          "type": "number",
+          "label": {
+            "en": "Air conditioners turned off",
+            "fr": "Clims éteintes",
+            "de": "Ausgeschaltete Klimaanlagen",
+            "es": "Aires apagados"
+          }
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "air_conditioners",
+      "label": {
+        "en": "Sensibo air conditioners",
+        "fr": "Clims Sensibo",
+        "de": "Sensibo-Klimaanlagen",
+        "es": "Aires Sensibo"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "State, mode, setpoint and room temperature of each air conditioner, with On and Off buttons.",
+        "fr": "État, mode, consigne et température de chaque clim, avec boutons Allumer et Éteindre.",
+        "de": "Zustand, Modus, Soll- und Raumtemperatur jeder Klimaanlage, mit Tasten Ein und Aus.",
+        "es": "Estado, modo, temperatura objetivo y ambiente de cada aire, con botones Encender y Apagar."
+      },
+      "icon": "wind",
+      "settings": [
+        {
+          "key": "device",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Air conditioner (empty: all)",
+            "fr": "Clim (vide : toutes)",
+            "de": "Klimaanlage (leer: alle)",
+            "es": "Aire acondicionado (vacío: todos)"
+          }
+        }
+      ],
+      "action_timeout_seconds": 60
     }
   ]
 }
