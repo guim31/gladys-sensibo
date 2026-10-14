@@ -73,8 +73,10 @@ Spanish), also shown by Gladys.
   `{ enabled }`.
 - The key travels in the `apiKey` query parameter, as the API documents; no URL
   is ever logged. Nothing is written to `/data`.
-- A refused key stops the readings until the configuration changes; a "too many
-  requests" answer pauses them ten minutes.
+- A refused key is retried hourly only (at once on a new configuration); a
+  "too many requests" answer pauses the readings ten minutes. Commands to one
+  pod are queued, each built on the answer of the previous one, and a reading
+  that started before a command never overwrites its result.
 
 ## Limitations
 

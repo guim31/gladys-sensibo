@@ -111,7 +111,7 @@ d'appareil de Gladys sur la fonctionnalité _Température ambiante_ ou _Humidit�
 
 - **Allumer des clims Sensibo** : une clim, ou toutes si le champ est vide, dans
   un mode (Refroidissement, Chauffage, Auto, Déshumidification, Ventilation), à
-  une température, en une seule commande. La température est ramenée dans les
+  une température en °C (convertie pour les appareils réglés en Fahrenheit), en une seule commande. La température est ramenée dans les
   consignes de chaque télécommande pour ce mode ; vide, celle en cours est
   gardée. Sorties : le nombre de clims allumées et la température appliquée.
 - **Éteindre des clims Sensibo** : une clim, ou toutes si le champ est vide.
@@ -133,8 +133,8 @@ appareil_ fonctionne aussi.
 
 - **« Sensibo refuse la clé d'API »** : vérifiez la clé sur
   [home.sensibo.com/me/api](https://home.sensibo.com/me/api), ou créez-en une
-  nouvelle. Après cette erreur, l'intégration arrête de lire jusqu'à ce que vous
-  enregistriez la configuration ou cliquiez sur **Tester la connexion**.
+  nouvelle. Après cette erreur, l'intégration ne réessaie qu'une fois par heure,
+  ou tout de suite quand vous enregistrez la configuration ou cliquez sur **Tester la connexion**.
 - **« Trop de requêtes »** : le cloud Sensibo limite les requêtes d'une clé ;
   l'intégration patiente dix minutes. Choisissez un intervalle plus long si
   cela revient.

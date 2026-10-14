@@ -51,6 +51,8 @@ export const TRIGGERS = Object.freeze({
 export const HUB_TIMINGS = {
   // After a "too many requests", wait this long before the next reading.
   rateLimitBackoffMs: 10 * 60_000,
+  // After a refused key, try again this rarely (a 403 may be a passing block).
+  authRetryMs: 60 * 60_000,
   // Re-send unchanged values this often (Gladys flags values older than 48 h).
   heartbeatMs: 12 * 60 * 60_000,
 };
@@ -84,11 +86,28 @@ function keepFeatures(previous, next) {
     features[key] = Boolean(previous.features[key] || next.features[key]);
   }
   features.setpointRange = next.features.setpointRange ?? previous.features.setpointRange;
+  const lastSetpoint = next.lastSetpoint ?? previous.lastSetpoint ?? null;
   if (features.targetTemperature && !features.setpointRange) {
     features.targetTemperature = false;
   }
-  return { ...next, features };
+  return { ...next, lastSetpoint, features };
 }
+
+// The AC state fields a command sets: kept from the command's answer when a
+// reading that started before the command comes back with older values.
+const COMMANDED = [
+  'acState',
+  'on',
+  'mode',
+  'targetTemperature',
+  'lastSetpoint',
+  'fanSpeed',
+  'swingVertical',
+  'swingHorizontal',
+  'climateReact',
+];
+
+const toFahrenheit = (celsius) => (celsius * 9) / 5 + 32;
 
 export class SensiboHub {
   /**
@@ -118,6 +137,10 @@ export class SensiboHub {
     this.stopped = false;
     /** Problems already logged, by key: repeats go to debug. */
     this.warned = new Set();
+    /** Commands in progress, by pod id: one at a time per pod. */
+    this.queues = new Map();
+    /** Incremented by every command, to spot the readings older than it. */
+    this.commandCount = 0;
   }
 
   // --- Logs ------------------------------------------------------------------
@@ -202,15 +225,14 @@ export class SensiboHub {
       return;
     }
     const kind = this.cloud.error?.kind;
-    if (kind === ERROR_KINDS.AUTH) {
-      // A refused key stays refused: wait for a new configuration (or
-      // "Test the connection").
-      return;
-    }
+    // A refused key is retried hourly only (a new configuration or "Test the
+    // connection" reads at once); a "too many requests" waits ten minutes.
     const delay =
-      kind === ERROR_KINDS.RATE_LIMITED
-        ? Math.max(this.timings.rateLimitBackoffMs, this.config.pollIntervalMs)
-        : this.config.pollIntervalMs;
+      kind === ERROR_KINDS.AUTH
+        ? this.timings.authRetryMs
+        : kind === ERROR_KINDS.RATE_LIMITED
+          ? Math.max(this.timings.rateLimitBackoffMs, this.config.pollIntervalMs)
+          : this.config.pollIntervalMs;
     this.pollTimer = setTimeout(() => {
       this.pollNow().catch((err) =>
         this.problem('poll', `Reading failed: ${err.message}`, 'error'),
@@ -240,6 +262,7 @@ export class SensiboHub {
     if (!client) {
       return;
     }
+    const commandsBefore = this.commandCount;
     let pods;
     try {
       pods = await client.getPods();
@@ -255,7 +278,21 @@ export class SensiboHub {
     if (client !== this.client || this.stopped) {
       return; // the key changed while reading
     }
-    await this.applyReadings(pods.map(parsePod));
+    const readings = [];
+    for (const pod of pods) {
+      try {
+        readings.push(parsePod(pod));
+        this.resolved(`parse:${pod.id}`);
+      } catch (err) {
+        // One odd pod must not blind the whole account.
+        this.problem(`parse:${pod.id}`, `Pod ${pod.id} skipped: ${err.message}`);
+        const known = this.pods.get(pod.id);
+        if (known) {
+          readings.push(known);
+        }
+      }
+    }
+    await this.applyReadings(readings, commandsBefore);
   }
 
   async applyCloudFailure(err) {
@@ -272,7 +309,7 @@ export class SensiboHub {
     }
   }
 
-  async applyReadings(readings) {
+  async applyReadings(readings, commandsBefore = this.commandCount) {
     const wasError = this.cloud.error;
     const firstReading = !this.cloud.read;
     this.cloud = { read: true, error: null };
@@ -286,7 +323,12 @@ export class SensiboHub {
     for (const reading of readings) {
       seen.add(reading.id);
       const previous = this.pods.get(reading.id);
-      const next = keepFeatures(previous, reading);
+      let next = keepFeatures(previous, reading);
+      if (previous && previous.commandCount > commandsBefore) {
+        // A command answered after this reading left: its state is newer.
+        next = { ...next, ...Object.fromEntries(COMMANDED.map((key) => [key, previous[key]])) };
+      }
+      next.commandCount = previous?.commandCount ?? 0;
       // Not `||=`: the transitions (scene events) must run for every pod.
       const changed = await this.transitions(previous, next);
       widgetChanged = widgetChanged || changed;
@@ -490,43 +532,81 @@ export class SensiboHub {
     const single = targets.length === 1 && Boolean(deviceExternalId);
     const done = [];
     let lastError = null;
-    for (const pod of targets) {
-      if (!pod.online) {
-        lastError = new UnsupportedCommand('offline');
-        continue;
+    for (const target of targets) {
+      const result = await this.serial(target.id, () =>
+        this.commandOne(target.id, change, describe),
+      );
+      if (result.error) {
+        lastError = result.error;
+      } else if (result.pod) {
+        done.push(result.pod);
       }
-      let acState;
-      try {
-        acState = buildAcState(pod, change);
-      } catch (err) {
-        if (!(err instanceof UnsupportedCommand)) {
-          throw err;
-        }
-        lastError = err;
-        continue;
-      }
-      let applied;
-      try {
-        applied = await this.client.setAcState(pod.id, acState);
-      } catch (err) {
-        if (!err.kind) {
-          throw err;
-        }
-        logger.warn(`${podName(pod)}: command failed: ${err.message}`);
-        lastError = err;
-        continue;
-      }
-      logger.info(`${podName(pod)}: ${describe}`);
-      const next = applyAcState(pod, applied);
-      this.pods.set(pod.id, next);
-      done.push(next);
-      await this.publishStates(next);
     }
     this.gladys.requestWidgetRefresh(WIDGET_KEY);
     if (done.length === 0) {
       throw new Error(this.errorText(lastError, single ? targets[0] : null, language));
     }
     return done;
+  }
+
+  /** One command at a time per pod: each builds on the answer of the previous one. */
+  serial(id, fn) {
+    const previous = this.queues.get(id) ?? Promise.resolve();
+    const run = previous.then(fn, fn);
+    const tail = run.catch(() => {});
+    this.queues.set(id, tail);
+    tail.then(() => {
+      if (this.queues.get(id) === tail) {
+        this.queues.delete(id);
+      }
+    });
+    return run;
+  }
+
+  /**
+   * Build and send a command to one pod, from its latest known state.
+   * @param {object|Function} change the change, or a function of the pod giving it
+   * @returns {Promise<{ pod?: object, error?: Error }>}
+   */
+  async commandOne(id, change, describe) {
+    const pod = this.pods.get(id);
+    const client = this.client;
+    if (!pod) {
+      return { error: new UnsupportedCommand('unknownPod') };
+    }
+    if (!pod.online) {
+      return { error: new UnsupportedCommand('offline') };
+    }
+    let acState;
+    try {
+      acState = buildAcState(pod, typeof change === 'function' ? change(pod) : change);
+    } catch (err) {
+      if (!(err instanceof UnsupportedCommand)) {
+        throw err;
+      }
+      return { error: err };
+    }
+    this.commandCount += 1;
+    const count = this.commandCount;
+    this.pods.set(id, { ...pod, commandCount: count });
+    let applied;
+    try {
+      applied = await client.setAcState(pod.id, acState);
+    } catch (err) {
+      if (!err.kind) {
+        throw err;
+      }
+      logger.warn(`${podName(pod)}: command failed: ${err.message}`);
+      return { error: err };
+    }
+    logger.info(`${podName(pod)}: ${describe}`);
+    if (client !== this.client || !this.pods.has(id)) {
+      return {}; // the key changed meanwhile: this pod is not ours any more
+    }
+    const next = { ...applyAcState(this.pods.get(id), applied), commandCount: count };
+    this.pods.set(id, next);
+    await this.publishStates(next);
+    return { pod: next };
   }
 
   errorText(err, pod, language) {
@@ -555,18 +635,25 @@ export class SensiboHub {
     if (!Object.hasOwn(MODE_VALUES, mode)) {
       throw new Error(pick(ACTION_TEXT.unknownMode, language));
     }
-    const change = { on: true, mode };
+    let celsius;
     if (temperature !== null && temperature !== undefined && temperature !== '') {
-      const number = Number(String(temperature).replace(',', '.'));
-      if (!Number.isFinite(number)) {
+      celsius = Number(String(temperature).replace(',', '.'));
+      if (!Number.isFinite(celsius)) {
         throw new Error(pick(ACTION_TEXT.badTemperature, language));
       }
-      change.targetTemperature = number;
     }
+    // The scene field is in °C: converted for the pods set to Fahrenheit.
+    const change = (pod) => ({
+      on: true,
+      mode,
+      ...(celsius === undefined
+        ? {}
+        : { targetTemperature: pod.unit === 'F' ? toFahrenheit(celsius) : celsius }),
+    });
     return this.command(
       deviceExternalId,
       change,
-      `on, ${mode}${change.targetTemperature === undefined ? '' : ` ${change.targetTemperature}`}`,
+      `on, ${mode}${celsius === undefined ? '' : ` ${celsius} °C`}`,
     );
   }
 
@@ -600,11 +687,19 @@ export class SensiboHub {
         return;
       }
       case FEATURE_KEYS.SWING_VERTICAL: {
+        // A partial range reads as "swing": sending the value shown back
+        // keeps it, rather than widening it to the full range.
+        if (this.pods.get(id)?.swingVertical === number) {
+          return;
+        }
         const swing = swingKeyOf(number) ?? fail('swing');
         await this.command(device.external_id, { swing }, `swing ${swing}`);
         return;
       }
       case FEATURE_KEYS.SWING_HORIZONTAL: {
+        if (this.pods.get(id)?.swingHorizontal === number) {
+          return;
+        }
         const horizontalSwing = horizontalSwingKeyOf(number) ?? fail('swing');
         await this.command(
           device.external_id,
@@ -623,20 +718,38 @@ export class SensiboHub {
 
   async setClimateReact(deviceExternalId, enabled) {
     const language = this.config.language;
-    const [pod] = this.targets(deviceExternalId);
-    try {
-      await this.client.setClimateReact(pod.id, enabled);
-    } catch (err) {
-      if (!err.kind) {
-        throw err;
+    const [target] = this.targets(deviceExternalId);
+    await this.serial(target.id, async () => {
+      const pod = this.pods.get(target.id) ?? target;
+      const client = this.client;
+      if (!pod.features.climateReact) {
+        throw new Error(labelled(podName(pod), pick(ACTION_TEXT.kind, language), language));
       }
-      logger.warn(`${podName(pod)}: Climate React failed: ${err.message}`);
-      throw new Error(this.errorText(err, pod, language), { cause: err });
-    }
-    logger.info(`${podName(pod)}: Climate React ${enabled ? 'on' : 'off'}`);
-    const next = { ...pod, climateReact: enabled };
-    this.pods.set(pod.id, next);
-    await this.publishStates(next);
+      if (!pod.online) {
+        throw new Error(labelled(podName(pod), pick(ACTION_TEXT.offline, language), language));
+      }
+      try {
+        await client.setClimateReact(pod.id, enabled);
+      } catch (err) {
+        if (!err.kind) {
+          throw err;
+        }
+        logger.warn(`${podName(pod)}: Climate React failed: ${err.message}`);
+        throw new Error(this.errorText(err, pod, language), { cause: err });
+      }
+      logger.info(`${podName(pod)}: Climate React ${enabled ? 'on' : 'off'}`);
+      if (client !== this.client || !this.pods.has(pod.id)) {
+        return;
+      }
+      this.commandCount += 1;
+      const next = {
+        ...this.pods.get(pod.id),
+        climateReact: enabled,
+        commandCount: this.commandCount,
+      };
+      this.pods.set(pod.id, next);
+      await this.publishStates(next);
+    });
   }
 
   // --- Reports ---------------------------------------------------------------

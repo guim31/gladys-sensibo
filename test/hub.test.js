@@ -7,7 +7,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { TRIGGERS } from '../src/hub.js';
-import { ACCOUNT, createAll, createWorld, deviceId, deviceOf, featureId } from './helpers/world.js';
+import {
+  ACCOUNT,
+  FakeSensibo,
+  createAll,
+  createWorld,
+  deviceId,
+  deviceOf,
+  featureId,
+} from './helpers/world.js';
 
 const feature = (world, name, key) =>
   deviceOf(world, name).features.find((f) => f.external_id === featureId(world, name, key));
@@ -192,4 +200,85 @@ test('statuses: no key, refused key, no device, then the test report', async (t)
   await world.hub.poll();
   assert.equal(world.fake.discoveredDevices.length, 0);
   assert.match(world.fake.connectionStatus.message.en, /no device/);
+});
+
+test('two commands sent together on one pod both apply, in order', async (t) => {
+  const world = await createWorld();
+  t.after(() => world.app.stop());
+  const acks = await Promise.all([
+    set(world, 'sky', 'mode', 1),
+    set(world, 'sky', 'target_temperature', 20),
+  ]);
+  assert.deepEqual(
+    acks.map((ack) => ack.success),
+    [true, true],
+  );
+  const state = world.cloud.pod('sky').acState;
+  assert.equal(state.mode, 'cool');
+  assert.equal(state.targetTemperature, 20);
+});
+
+test('a reading that left before a command does not undo it', async (t) => {
+  const world = await createWorld();
+  t.after(() => world.app.stop());
+  // Hold the next pod list until the command has answered.
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const request = world.cloud.request;
+  let held = false;
+  world.cloud.request = async (req) => {
+    if (!held && req.method === 'GET') {
+      held = true;
+      const answer = await request(req);
+      await gate;
+      return answer;
+    }
+    return request(req);
+  };
+  world.hub.client.request = world.cloud.request;
+  const reading = world.hub.poll();
+  await new Promise((resolve) => setImmediate(resolve));
+  const ack = await set(world, 'sky', 'power', 1);
+  assert.equal(ack.success, true, ack.error);
+  release();
+  await reading;
+  assert.equal(world.hub.pods.get(world.cloud.id('sky')).on, true);
+  assert.equal(world.fake.lastState(featureId(world, 'sky', 'power')), 1);
+});
+
+test('turn_on with a temperature in °C converts it for a Fahrenheit pod', async (t) => {
+  const cloud = new FakeSensibo();
+  const sky = cloud.pod('sky');
+  sky.temperatureUnit = 'F';
+  sky.acState.temperatureUnit = 'F';
+  sky.acState.targetTemperature = 75;
+  const world = await createWorld({ cloud });
+  t.after(() => world.app.stop());
+  const ack = await world.fake.sceneAction('turn_on', { mode: 'cool', temperature: 22 });
+  assert.equal(ack.success, true, ack.error);
+  assert.equal(cloud.pod('sky').acState.targetTemperature, 72); // 71.6 °F
+  assert.equal(cloud.pod('air-pro').acState.targetTemperature, 22);
+  assert.equal(ack.data.outputs.count, 2);
+});
+
+test('one pod the integration cannot read does not stop the others', async (t) => {
+  const world = await createWorld();
+  t.after(() => world.app.stop());
+  world.cloud.pod('pure').remoteCapabilities = { modes: { fan: { temperatures: { C: 5 } } } };
+  world.cloud.pod('sky').acState.on = true;
+  await world.hub.poll();
+  assert.equal(world.fake.lastState(featureId(world, 'sky', 'power')), 1);
+  assert.equal(world.fake.connectionStatus.connected, true);
+});
+
+test('Climate React is refused on a pod without it, or offline', async (t) => {
+  const world = await createWorld();
+  t.after(() => world.app.stop());
+  world.cloud.setOnline('sky', false);
+  await world.hub.poll();
+  const ack = await set(world, 'sky', 'climate_react', 1);
+  assert.equal(ack.success, false);
+  assert.equal(world.cloud.pod('sky').smartMode.enabled, false);
 });

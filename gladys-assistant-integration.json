@@ -430,10 +430,10 @@
           "key": "temperature",
           "type": "number",
           "label": {
-            "en": "Temperature (empty: current)",
-            "fr": "Température (vide : actuelle)",
-            "de": "Temperatur (leer: aktuelle)",
-            "es": "Temperatura (vacío: actual)"
+            "en": "Temperature in °C (empty: current)",
+            "fr": "Température en °C (vide : actuelle)",
+            "de": "Temperatur in °C (leer: aktuelle)",
+            "es": "Temperatura en °C (vacío: actual)"
           }
         }
       ],
@@ -452,10 +452,10 @@
           "key": "temperature",
           "type": "number",
           "label": {
-            "en": "Temperature applied",
-            "fr": "Température appliquée",
-            "de": "Angewendete Temperatur",
-            "es": "Temperatura aplicada"
+            "en": "Temperature applied (°C)",
+            "fr": "Température appliquée (°C)",
+            "de": "Angewendete Temperatur (°C)",
+            "es": "Temperatura aplicada (°C)"
           }
         }
       ]

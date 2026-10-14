@@ -129,7 +129,8 @@ export function kindOf(pod) {
 }
 
 /** Celsius or Fahrenheit, as the pod is set in the Sensibo app. */
-const unitOf = (pod) => ((pod.temperatureUnit ?? pod.acState?.temperatureUnit) === 'F' ? 'F' : 'C');
+// The unit of the AC state first: the setpoint is in it, whatever the display unit.
+const unitOf = (pod) => ((pod.acState?.temperatureUnit ?? pod.temperatureUnit) === 'F' ? 'F' : 'C');
 
 /**
  * What the remote can do, mode by mode.
@@ -144,7 +145,10 @@ function parseCapabilities(pod, unit) {
     const list = (value) =>
       Array.isArray(value) ? value.filter((v) => typeof v === 'string') : [];
     modes[mode] = {
-      temperatures: (caps.temperatures?.[unit]?.values ?? [])
+      temperatures: (Array.isArray(caps.temperatures?.[unit]?.values)
+        ? caps.temperatures[unit].values
+        : []
+      )
         .filter((v) => finite(v) !== null)
         .sort((a, b) => a - b),
       fanLevels: list(caps.fanLevels),
@@ -229,6 +233,8 @@ export function parsePod(pod) {
     on: typeof acState.on === 'boolean' ? acState.on : null,
     mode: lookup(MODE_VALUES, acState.mode),
     targetTemperature: finite(acState.targetTemperature),
+    // The fan mode has no setpoint: the last one is kept for the next mode.
+    lastSetpoint: finite(acState.targetTemperature),
     fanSpeed: lookup(FAN_VALUES, acState.fanLevel),
     swingVertical: swingValue(acState.swing),
     swingHorizontal: horizontalValue(acState.horizontalSwing),
@@ -283,8 +289,14 @@ export function buildAcState(pod, change) {
   next.mode = mode;
 
   if (caps.temperatures.length > 0) {
-    const wanted = change.targetTemperature ?? finite(current.targetTemperature);
-    next.targetTemperature = snapSetpoint(caps.temperatures, wanted ?? caps.temperatures[0]);
+    // Without a setpoint (coming from the fan mode): the last one known, else
+    // the middle of the list, never the coldest or the hottest.
+    const wanted =
+      change.targetTemperature ??
+      finite(current.targetTemperature) ??
+      pod.lastSetpoint ??
+      caps.temperatures[Math.floor(caps.temperatures.length / 2)];
+    next.targetTemperature = snapSetpoint(caps.temperatures, wanted);
     next.temperatureUnit = pod.unit;
   } else {
     if (change.targetTemperature !== undefined && change.mode === undefined) {
@@ -335,6 +347,7 @@ export function applyAcState(pod, acState) {
     on: parsed.on,
     mode: parsed.mode,
     targetTemperature: parsed.targetTemperature,
+    lastSetpoint: parsed.lastSetpoint ?? pod.lastSetpoint ?? null,
     fanSpeed: parsed.fanSpeed,
     swingVertical: parsed.swingVertical,
     swingHorizontal: parsed.swingHorizontal,

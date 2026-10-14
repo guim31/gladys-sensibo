@@ -11,12 +11,16 @@
 export const SCENE_ACTIONS = {
   async turn_on(hub, { fields = {} }) {
     const done = await hub.turnOn(fields.device || null, fields.mode, fields.temperature);
-    const setpoints = done.map((pod) => pod.targetTemperature).filter((t) => t !== null);
-    return {
-      count: done.length,
-      // What was really applied, after the remote's limits: the first one.
-      temperature: setpoints.length > 0 ? setpoints[0] : 0,
-    };
+    // What was really applied, after the remote's limits, in °C: the first one.
+    const applied = done.find((pod) => pod.targetTemperature !== null && pod.mode !== 4);
+    const outputs = { count: done.length };
+    if (applied) {
+      outputs.temperature =
+        applied.unit === 'F'
+          ? Math.round((((applied.targetTemperature - 32) * 5) / 9) * 10) / 10
+          : applied.targetTemperature;
+    }
+    return outputs;
   },
 
   async turn_off(hub, { fields = {} }) {

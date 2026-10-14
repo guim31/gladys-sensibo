@@ -250,8 +250,13 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
   `result.acState` est l'état appliqué, publié tout de suite, sans relecture (économie de quota).
   `result.status` vaut `Success` ou `Failed` (+ `failureReason`) **avec un HTTP 200**. Climate React :
   `PUT /pods/<id>/smartmode` `{ enabled }` ; `smartMode: null` = jamais réglé, l'interrupteur
-  n'est pas publié. 401/403 : clé refusée (plus de lecture jusqu'à nouvelle config), 429 : pause
-  de 10 min. Quota exact non publié par Sensibo.
+  n'est pas publié. 401/403 : clé refusée (une lecture par heure seulement, tout de suite à une nouvelle config :
+  un 403 peut être un blocage passager), 429 : pause de 10 min. **Commandes en file par pod**
+  (une scène lance ses actions en parallèle : mode puis consigne s'écrasaient), et une lecture partie
+  avant une commande ne remplace pas son résultat (`commandCount`). La consigne de l'action de scène
+  est en °C, convertie pour les pods en °F ; après le mode `fan` (sans consigne), la dernière
+  consigne connue (`lastSetpoint`) est reprise. Quota exact non publié par Sensibo. Vérifié contre la vraie API le 14/10/2026 (conteneur verrouillé) : une
+  mauvaise clé répond **HTTP 403** `{ reason: "NotAuthorized" }` (pas 401), en lecture comme en écriture.
 - **Modèles** (`productModel`) : `pure*` purificateur (marche/arrêt seulement), `elements*`
   capteur (mesures seulement), tout le reste = télécommande IR de clim. Les mesures de
   température sont **toujours en °C** ; la consigne suit `temperatureUnit` du pod (C/F) et ses

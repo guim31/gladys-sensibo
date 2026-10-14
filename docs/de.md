@@ -110,7 +110,7 @@ _Luftfeuchtigkeit_ (zum Beispiel „über 28 °C“): Er löst bereits beim
 
 - **Sensibo-Klimaanlagen einschalten**: eine Klimaanlage, oder alle, wenn das
   Feld leer ist, in einem Modus (Kühlen, Heizen, Automatisch, Entfeuchten,
-  Lüften), mit einer Temperatur, in einem einzigen Befehl. Die Temperatur wird
+  Lüften), mit einer Temperatur in °C (umgerechnet für Geräte in Fahrenheit), in einem einzigen Befehl. Die Temperatur wird
   in die Sollwerte jeder Fernbedienung für diesen Modus gebracht; leer bleibt
   die aktuelle. Ausgaben: die Anzahl der eingeschalteten Klimaanlagen und die
   angewendete Temperatur.
@@ -135,8 +135,8 @@ _Gerät steuern_.
 
 - **„Sensibo lehnt den API-Schlüssel ab“**: Prüfe den Schlüssel auf
   [home.sensibo.com/me/api](https://home.sensibo.com/me/api) oder erstelle einen
-  neuen. Nach diesem Fehler hört die Integration auf zu lesen, bis du die
-  Konfiguration speicherst oder auf **Verbindung testen** klickst.
+  neuen. Nach diesem Fehler versucht es die Integration nur einmal pro Stunde
+  erneut, oder sofort, wenn du die Konfiguration speicherst oder auf **Verbindung testen** klickst.
 - **„Zu viele Anfragen“**: Die Sensibo-Cloud begrenzt die Anfragen eines
   Schlüssels; die Integration wartet zehn Minuten. Wähle ein längeres
   Intervall, wenn es wiederkommt.

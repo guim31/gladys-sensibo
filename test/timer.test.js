@@ -35,14 +35,17 @@ test('the pods are read again at the configured interval, without onPoll', async
   assert.equal(reads(world), 3);
 });
 
-test('a refused key stops the readings until the configuration changes', async (t) => {
+test('a refused key is only tried again once an hour', async (t) => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const world = await createWorld({ config: { ...ACCOUNT, api_key: 'nope' }, timers: true });
   t.after(() => world.app.stop());
-  t.mock.timers.tick(3_600_000);
+  t.mock.timers.tick(3_599_000);
   await flush();
   assert.equal(world.cloud.requests.length, 1);
   assert.equal(world.fake.connectionStatus.connected, false);
+  t.mock.timers.tick(1_000);
+  await flush();
+  assert.equal(world.cloud.requests.length, 2);
 });
 
 test('a "too many requests" answer waits ten minutes', async (t) => {

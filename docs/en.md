@@ -104,7 +104,7 @@ already fires on the crossing.
 
 - **Turn on Sensibo air conditioners**: one air conditioner, or all of them when
   the field is empty, in a mode (Cooling, Heating, Auto, Drying, Fan), at a
-  temperature, in a single command. The temperature is brought within the
+  temperature in °C (converted for the devices set to Fahrenheit), in a single command. The temperature is brought within the
   setpoints of each remote in that mode; empty, the current one is kept.
   Outputs: the number of air conditioners turned on, and the temperature
   applied.
@@ -127,8 +127,8 @@ For one feature of one device, the Gladys action _Control a device_ works too.
 
 - **"Sensibo refuses the API key"**: check the key at
   [home.sensibo.com/me/api](https://home.sensibo.com/me/api), or create a new
-  one. After this error, the integration stops reading until you save the
-  configuration or click **Test the connection**.
+  one. After this error, the integration only tries again once an hour, or
+  at once when you save the configuration or click **Test the connection**.
 - **"Too many requests"**: the Sensibo cloud limits the requests of a key; the
   integration waits ten minutes. Choose a longer interval if it comes back.
 - **A mode or a fan speed is refused**: the remote of your air conditioner does

@@ -110,8 +110,8 @@ ejemplo «por encima de 28 °C»): ya se dispara al cruzar el umbral.
 ### Acciones
 
 - **Encender aires Sensibo**: un aire acondicionado, o todos si el campo está
-  vacío, en un modo (Frío, Calor, Auto, Seco, Ventilador), a una temperatura, en
-  una sola orden. La temperatura se ajusta a los valores de cada mando en ese
+  vacío, en un modo (Frío, Calor, Auto, Seco, Ventilador), a una temperatura en °C
+  (convertida para los dispositivos en Fahrenheit), en una sola orden. La temperatura se ajusta a los valores de cada mando en ese
   modo; vacía, se mantiene la actual. Salidas: el número de aires encendidos y
   la temperatura aplicada.
 - **Apagar aires Sensibo**: un aire acondicionado, o todos si el campo está
@@ -133,8 +133,8 @@ dispositivo_ también sirve.
 
 - **«Sensibo rechaza la clave de API»**: compruebe la clave en
   [home.sensibo.com/me/api](https://home.sensibo.com/me/api), o cree una nueva.
-  Tras este error, la integración deja de leer hasta que guarde la
-  configuración o haga clic en **Probar la conexión**.
+  Tras este error, la integración solo lo vuelve a intentar una vez por hora,
+  o de inmediato cuando guarde la configuración o haga clic en **Probar la conexión**.
 - **«Demasiadas solicitudes»**: la nube de Sensibo limita las solicitudes de una
   clave; la integración espera diez minutos. Elija un intervalo más largo si
   vuelve a ocurrir.

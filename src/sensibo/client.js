@@ -121,8 +121,14 @@ export class SensiboClient {
 
   /** Turn Climate React on or off (its settings stay those of the Sensibo app). */
   async setClimateReact(id, enabled) {
-    await this.call('Climate React', 'PUT', `/pods/${encodeURIComponent(id)}/smartmode`, {
-      body: { enabled },
-    });
+    const body = await this.call(
+      'Climate React',
+      'PUT',
+      `/pods/${encodeURIComponent(id)}/smartmode`,
+      { body: { enabled } },
+    );
+    if (body?.status !== 'success') {
+      throw new SensiboError(ERROR_KINDS.REFUSED, 'Climate React: not applied');
+    }
   }
 }

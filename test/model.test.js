@@ -7,6 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   KINDS,
+  applyAcState,
   UnsupportedCommand,
   buildAcState,
   parsePod,
@@ -36,13 +37,37 @@ test('the fixtures parse into the three kinds of pods', () => {
   assert.equal(elements.features.power, false);
 });
 
-test('Fahrenheit pods use the Fahrenheit setpoints', () => {
+test('the setpoint is in the unit of the AC state, Fahrenheit included', () => {
   const raw = loadFixture('sky');
   raw.temperatureUnit = 'F';
+  raw.acState.temperatureUnit = 'F';
+  raw.acState.targetTemperature = 75;
   const sky = parsePod(raw);
   assert.equal(sky.unit, 'F');
   assert.deepEqual(sky.features.setpointRange, [63, 86]);
   assert.equal(buildAcState(sky, { targetTemperature: 71.5 }).targetTemperature, 72);
+  // Displayed in F, but the remote set in C: the setpoint stays in C.
+  raw.acState.temperatureUnit = 'C';
+  raw.acState.targetTemperature = 22;
+  const mixed = parsePod(raw);
+  assert.equal(mixed.unit, 'C');
+  assert.equal(buildAcState(mixed, { on: true }).targetTemperature, 22);
+});
+
+test('a malformed setpoint list is ignored, not thrown', () => {
+  const raw = loadFixture('sky');
+  raw.remoteCapabilities.modes.cool.temperatures.C.values = 'oops';
+  const sky = parsePod(raw);
+  assert.deepEqual(sky.capabilities.modes.cool.temperatures, []);
+});
+
+test('back from the fan mode, the last setpoint is used again', () => {
+  const sky = pod('sky');
+  const fan = applyAcState(sky, buildAcState(sky, { mode: 'fan' }));
+  assert.equal(fan.targetTemperature, null);
+  assert.equal(buildAcState(fan, { mode: 'cool' }).targetTemperature, 24);
+  const unknown = { ...fan, lastSetpoint: null };
+  assert.equal(buildAcState(unknown, { mode: 'cool' }).targetTemperature, 24, 'middle of 18-30');
 });
 
 test('a setpoint is clamped to the remote, then rounded to its nearest value', () => {
