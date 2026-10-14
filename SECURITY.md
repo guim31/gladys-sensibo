@@ -30,6 +30,13 @@ Gladys before reporting a problem.
 
 In scope: the code of this repository and the Docker image it publishes.
 
+The integration keeps the Sensibo API key in the Gladys configuration (a secret
+field) and sends it only to the Sensibo cloud (`https://home.sensibo.com`, over
+HTTPS, in the `apiKey` parameter the API requires). Nothing is written to
+`/data`. The logs and the error messages never contain the key nor the request
+addresses that carry it. A key can be revoked at any time in the Sensibo
+account.
+
 Out of scope: Gladys Assistant itself (see its
 [security policy](https://github.com/GladysAssistant/Gladys/security/policy)),
-and the third-party services and devices the integration talks to.
+and the Sensibo cloud, app and devices.

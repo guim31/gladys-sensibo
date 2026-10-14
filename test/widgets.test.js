@@ -1,77 +1,85 @@
+// -----------------------------------------------------------------------------
+// The `air_conditioners` widget: content within the core's vocabulary and
+// budget, the rows of each air conditioner, the buttons and their commands.
+// -----------------------------------------------------------------------------
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { validateWidgetContent } from '@gladysassistant/integration-sdk';
-import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
-import { buildDiscoveredDevices } from '../src/devices/index.js';
-import { simulateLanSession } from '../src/devices/plug.js';
-import { DEMO_STATUS_WIDGET, WIDGETS, refreshWidgets } from '../src/widgets.js';
-import { normalizeConfig } from '../src/config.js';
+import { WIDGET_KEY } from '../src/hub.js';
+import { ACTIONS } from '../src/widgets.js';
+import { ACCOUNT, createWorld, deviceId } from './helpers/world.js';
 
-const gladys = createFakeGladys();
-const config = normalizeConfig();
-const demoStatus = WIDGETS[DEMO_STATUS_WIDGET];
+const get = async (world, settings = {}, language = 'fr') => {
+  const ack = await world.fake.widgetGet(WIDGET_KEY, { settings, language });
+  assert.equal(ack.success, true, ack.error);
+  const { content } = ack.data;
+  assert.deepEqual(validateWidgetContent(content), [], JSON.stringify(content));
+  return content;
+};
 
-// What the SDK passes to onWidgetGet, plus the config index.js adds.
-const getContent = (cfg = config) =>
-  demoStatus.get(gladys, { settings: {}, language: 'en', units: 'metric', config: cfg });
-
-test('the demo_status content is rendered exactly as sent', async () => {
-  // [] = nothing the core would drop, truncate or trim to the content budget.
-  assert.deepEqual(validateWidgetContent(await getContent()), []);
-});
-
-test('the degraded plug connection content is valid too', async () => {
-  simulateLanSession(false);
-  try {
-    const content = await getContent();
-    assert.deepEqual(validateWidgetContent(content), []);
-    const status = content.components.find((component) => component.type === 'status');
-    assert.ok(
-      status.items.some((item) => item.color === 'warning'),
-      'degraded shows a warning',
+test('every air conditioner gets a row, with two buttons, in every language', async (t) => {
+  const world = await createWorld();
+  t.after(() => world.app.stop());
+  for (const language of ['en', 'fr', 'de', 'es']) {
+    const [status, ...buttons] = (await get(world, {}, language)).components;
+    assert.equal(status.items.length, 2, 'the Pure and the Elements are not listed');
+    assert.deepEqual(
+      buttons.map((button) => button.action.key),
+      [ACTIONS.ON, ACTIONS.OFF],
     );
-  } finally {
-    simulateLanSession(true);
   }
-});
-
-test('the live tiles reference features the integration publishes', async () => {
-  const featureIds = new Set(
-    buildDiscoveredDevices(gladys, config).flatMap((device) =>
-      device.features.map((feature) => feature.external_id),
-    ),
-  );
-  const liveTiles = (await getContent()).components.filter((c) => c.device_feature);
-  assert.ok(liveTiles.length > 0, 'the template demonstrates a device-bound tile');
-  for (const tile of liveTiles) {
-    assert.ok(featureIds.has(tile.device_feature), `unknown feature ${tile.device_feature}`);
-  }
-});
-
-test('every button action of the content is handled and answers a short toast', async () => {
-  const buttons = (await getContent()).components.filter((c) => c.type === 'button' && c.action);
-  assert.ok(buttons.length > 0, 'the template demonstrates a widget action');
-  for (const { action } of buttons) {
-    const message = await demoStatus.action(gladys, {
-      actionKey: action.key,
-      params: action.params ?? {},
-      settings: {},
-      config,
-    });
-    assert.ok(message.en, 'the toast carries at least the mandatory `en` text');
-    assert.ok(message.en.length <= 200, 'toasts are capped at 200 characters');
-  }
-});
-
-test('an unknown widget action fails, so the user sees the error', async () => {
-  await assert.rejects(
-    demoStatus.action(gladys, { actionKey: 'unknown', params: {}, settings: {}, config }),
-    /Unknown widget action/,
+  const [status] = (await get(world)).components;
+  assert.deepEqual(
+    status.items.map((item) => [item.label, item.value]),
+    [
+      ['Living room', 'Arrêt · pièce 20,2 °C'],
+      ['Hallway', 'Chauffage · 22 °C · pièce 21,2 °C'],
+    ],
   );
 });
 
-test('refreshWidgets nudges every widget', () => {
-  const fresh = createFakeGladys();
-  refreshWidgets(fresh);
-  assert.deepEqual(fresh.fake.widgetRefreshes, Object.keys(WIDGETS));
+test('one air conditioner: its row, and the check mark on its state', async (t) => {
+  const world = await createWorld();
+  t.after(() => world.app.stop());
+  const content = await get(world, { device: deviceId(world, 'air-pro') });
+  assert.equal(content.components[0].items.length, 1);
+  const marked = content.components.filter((c) => c.type === 'button' && c.icon === 'check-circle');
+  assert.deepEqual(
+    marked.map((button) => button.action.key),
+    [ACTIONS.ON],
+  );
+});
+
+test('a button turns on or off what the widget shows', async (t) => {
+  const world = await createWorld();
+  t.after(() => world.app.stop());
+  let ack = await world.fake.widgetAction(WIDGET_KEY, ACTIONS.OFF, {}, { settings: {} });
+  assert.equal(ack.success, true, ack.error);
+  assert.equal(ack.data.message.fr, 'Éteinte(s) : 2 clim(s).');
+  assert.equal(world.cloud.pod('air-pro').acState.on, false);
+  ack = await world.fake.widgetAction(
+    WIDGET_KEY,
+    ACTIONS.ON,
+    {},
+    {
+      settings: { device: deviceId(world, 'sky') },
+    },
+  );
+  assert.equal(ack.success, true, ack.error);
+  assert.equal(world.cloud.pod('sky').acState.on, true);
+  assert.equal(world.cloud.pod('air-pro').acState.on, false);
+});
+
+test('messages: no key, a cloud error over the last known rows', async (t) => {
+  const world = await createWorld({ config: { language: 'fr' } });
+  t.after(() => world.app.stop());
+  let content = await get(world);
+  assert.match(content.components[0].text, /clé d'API/);
+  await world.fake.configUpdated(ACCOUNT);
+  world.cloud.failures.push({ status: 503, body: null });
+  await world.hub.poll();
+  content = await get(world);
+  assert.equal(content.components[0].type, 'text');
+  assert.equal(content.components[1].items.length, 2);
 });

@@ -16,8 +16,8 @@ its only runtime dependency. It started from the official JavaScript template.
 ```bash
 npm install
 npm test                                  # node --test, the built-in runner
-node --test test/devices.test.js          # one file
-node --test --test-name-pattern "plug"    # tests whose name matches
+node --test test/hub.test.js              # one file
+node --test --test-name-pattern "turn_on" # tests whose name matches
 npm run lint                              # ESLint
 npm run format:check                      # Prettier, as the CI runs it
 npm run format                            # Prettier, fix in place
@@ -32,15 +32,20 @@ pushing.
 
 ```
 index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
+src/app.js                        registers every SDK handler on the hub (shared with the tests)
+src/hub.js                        timer, readings, transitions (scene events), commands, statuses
+src/devices.js                    one Gladys device per pod: features, names, states
+src/sensibo/model.js              pod parsing, Gladys values of modes/fan/swing, safe AC states
+src/sensibo/client.js             Sensibo API v2 client (pods, acStates, smartmode), error kinds
+src/sensibo/http.js               the only network access (fetch + timeout)
 src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+src/widgets.js                    `air_conditioners` widget (manifest `widgets`)
+src/texts.js                      texts sent from the container, four languages
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
 gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
-test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (en and fr mandatory)
+test/                             node --test, against the SDK's fake Gladys and a simulated Sensibo cloud
+test/fixtures/sensibo/            real pods of the pysensibo and Home Assistant test data, anonymized
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +75,9 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in English, French, German ("du") and Spanish
+  ("usted"): action messages, widget texts, feature names, manifest texts, and
+  `docs/en.md` / `fr.md` / `de.md` / `es.md`, kept in sync (`test/i18n.test.js`).
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -233,3 +239,46 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## Sensibo (cette intégration)
+
+- **API** : `https://home.sensibo.com/api/v2`, clé d'API de l'utilisateur dans le paramètre `apiKey`
+  (documenté ainsi par Sensibo) : **ne jamais journaliser une URL**, et les erreurs de `fetch` sont
+  réécrites sans le message d'origine (il peut citer l'URL). Lecture groupée
+  `GET /users/me/pods?fields=*` (une requête pour tous les pods), écriture
+  `POST /pods/<id>/acStates` avec l'état **complet** (`{ acState }`) : la réponse
+  `result.acState` est l'état appliqué, publié tout de suite, sans relecture (économie de quota).
+  `result.status` vaut `Success` ou `Failed` (+ `failureReason`) **avec un HTTP 200**. Climate React :
+  `PUT /pods/<id>/smartmode` `{ enabled }` ; `smartMode: null` = jamais réglé, l'interrupteur
+  n'est pas publié. 401/403 : clé refusée (une lecture par heure seulement, tout de suite à une nouvelle config :
+  un 403 peut être un blocage passager), 429 : pause de 10 min. **Commandes en file par pod**
+  (une scène lance ses actions en parallèle : mode puis consigne s'écrasaient), et une lecture partie
+  avant une commande ne remplace pas son résultat (`commandCount`). La consigne de l'action de scène
+  est en °C, convertie pour les pods en °F ; après le mode `fan` (sans consigne), la dernière
+  consigne connue (`lastSetpoint`) est reprise. Quota exact non publié par Sensibo. Vérifié contre la vraie API le 14/10/2026 (conteneur verrouillé) : une
+  mauvaise clé répond **HTTP 403** `{ reason: "NotAuthorized" }` (pas 401), en lecture comme en écriture.
+- **Modèles** (`productModel`) : `pure*` purificateur (marche/arrêt seulement), `elements*`
+  capteur (mesures seulement), tout le reste = télécommande IR de clim. Les mesures de
+  température sont **toujours en °C** ; la consigne suit `temperatureUnit` du pod (C/F) et ses
+  valeurs viennent de `remoteCapabilities.modes.<mode>.temperatures.<unité>.values`.
+- **Sécurité** (choix de Guilhem) : `buildAcState` ne sort jamais des capacités : mode absent
+  refusé, consigne bornée puis arrondie à la valeur la plus proche, vitesse/balayage absents
+  refusés, et un changement de mode retire ce que le nouveau mode ne connaît pas (pas de
+  consigne en `fan`, pas de `fanLevel` en `dry` sur certaines télécommandes).
+- **Correspondances** : modes ↔ `AC_MODE` du cœur (auto 0, cool 1, heat 2, dry 3, fan 4) ;
+  `fanLevel` ↔ `AC_FAN_SPEED` (`quiet` 6, `strong` 7) ; `swing` / `horizontalSwing` ↔ 0 arrêt,
+  1 balayage, 2-6 positions fixes. Les plages partielles (`rangeTop`…, `rangeCenter`) se lisent 1
+  mais ne s'écrivent pas ; `fixedLeftRight` n'a pas de valeur Gladys. Ces constantes ne sont
+  **pas exportées par le SDK 0.15** : copiées dans `src/sensibo/model.js`.
+- **Filtre** : pas de couple binaire « filtre à nettoyer » dans le cœur : publié en
+  `hepa-filter-monitoring/filter-life-remaining` (%, part de `filtersCleanSecondsThreshold`
+  restante), et `shouldCleanFilters` alimente le déclencheur `filter_clean_needed`.
+- **Fonctionnalités collantes** : une mesure absente d'une lecture ne retire pas sa fonctionnalité
+  (sinon « Mettre à jour » dans Découverte).
+- **Pas de déclencheur de seuil** (température/humidité hors plage) : les filtres de scène ne font
+  qu'égalité, et le déclencheur d'appareil du cœur sur _Température ambiante_ fait déjà le
+  franchissement.
+- **Fixtures** : `sky`, `pure`, `elements` viennent de `examples/response.json` de pysensibo (MIT) ;
+  `air-pro` est le Sky v2 des tests HA (Apache-2.0) passé en `airq`, avec les consignes d'une vraie
+  télécommande (celles du test HA s'arrêtent à 20 °C alors que l'état dit 25) et des valeurs CO2/TVOC
+  illustratives. Identifiants, MAC, numéros de série et adresses remplacés.
