@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-14
+
 ### Added
 
 - Sensibo Sky, Air and Air Pro air conditioner controllers, through the
@@ -28,3 +30,6 @@ the notes of the version's GitHub Release.
   one or all of them.
 - Configuration: API key, refresh interval (1 to 10 minutes), language of the
   names (English, French, German, Spanish), and a "Test the connection" button.
+
+[Unreleased]: https://github.com/guim31/gladys-sensibo/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/guim31/gladys-sensibo/releases/tag/v1.0.0
