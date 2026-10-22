@@ -1,6 +1,6 @@
 {
   "name": "gladys-sensibo",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Gladys Assistant integration for Sensibo air conditioner controllers (official cloud API).",
   "type": "module",
